@@ -1,14 +1,18 @@
-/* 
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 window.onload = function(){
-    //Prototyp funkce a variables
+    //Constants for clearer code.
+    var SEND_MESSAGE = 0;
+    var PULL_NEWS = 1;
+    var CLEAR_XML = 2;
+    
+    //Global variables.
     var xhr;
     var timeStamp = 0; //TOhle vypíše pouze poslední příspěvek. Musím se na to kouknout. Myslím, že to je přepisováním hodnoty timestamp při iteraci polem textů na straně serveru.
-    vyrobXhr();
+    createXhr();
+    
+    //Creating a prototype function.
     var ChatPrototype = function(){};
+    
+    //Prototyping all parts of the future chat.
     ChatPrototype.prototype.box = document.createElement('div');
     ChatPrototype.prototype.header = document.createElement('div');
     ChatPrototype.prototype.h1 = document.createElement('h1');
@@ -16,96 +20,100 @@ window.onload = function(){
     ChatPrototype.prototype.controls = document.createElement('div');
     ChatPrototype.prototype.form = document.createElement('form');
     ChatPrototype.prototype.responseLine = document.createElement('input');
-    ChatPrototype.prototype.nameLine = document.createElement('input');
+    ChatPrototype.prototype.nickLine = document.createElement('input');
     ChatPrototype.prototype.sendButton = document.createElement('button');
     ChatPrototype.prototype.clearXML = document.createElement('button');
 
     
-    //Vytvářím instanci objektu
-    var MujChat = new ChatPrototype();
+    //Instance creation.
+    var MyChat = new ChatPrototype();
     
-    //Skládám jednotlivé divy a prvky dohromady
-    MujChat.header.appendChild(MujChat.h1);
-    MujChat.box.appendChild(MujChat.header);
-    MujChat.box.appendChild(MujChat.chat);
-    MujChat.form.appendChild(MujChat.nameLine);
-    MujChat.form.appendChild(MujChat.responseLine);
-    MujChat.form.appendChild(MujChat.sendButton);
-    MujChat.form.appendChild(MujChat.clearXML);
-    MujChat.controls.appendChild(MujChat.form);
-    MujChat.box.appendChild(MujChat.controls);
+    //Putting the peaces together.
+    MyChat.header.appendChild(MyChat.h1);
+    MyChat.box.appendChild(MyChat.header);
+    MyChat.box.appendChild(MyChat.chat);
+    MyChat.form.appendChild(MyChat.nickLine);
+    MyChat.form.appendChild(MyChat.responseLine);
+    MyChat.form.appendChild(MyChat.sendButton);
+    MyChat.form.appendChild(MyChat.clearXML);
+    MyChat.controls.appendChild(MyChat.form);
+    MyChat.box.appendChild(MyChat.controls);
     
-    //Přiděluji názvy class
-    MujChat.box.className='box';
-    MujChat.header.className='header';
-    MujChat.h1.className='h1';
-    MujChat.chat.className='chat';
-    MujChat.controls.className='controls';
-    MujChat.form.className='form';
-    MujChat.nameLine.className='nameLine';
-    MujChat.nameLine.type='text';
-    MujChat.nameLine.placeholder='Nick';
-    MujChat.responseLine.className='responseLine';
-    MujChat.responseLine.type='text';
-    MujChat.responseLine.placeholder='Vlož text';
-    MujChat.sendButton.className='sendButton';
-    MujChat.sendButton.type='submit';
-    MujChat.clearXML.className='clearXML';
+    //Class, type and values setting.
+    MyChat.box.className='box';
+    MyChat.header.className='header';
+    MyChat.h1.className='h1';
+    MyChat.chat.className='chat';
+    MyChat.controls.className='controls';
+    MyChat.form.className='form';
+    MyChat.nickLine.className='nameLine';
+    MyChat.nickLine.type='text';
+    MyChat.nickLine.placeholder='Nick';
+    MyChat.responseLine.className='responseLine';
+    MyChat.responseLine.type='text';
+    MyChat.responseLine.placeholder='Enter text';
+    MyChat.sendButton.className='sendButton';
+    MyChat.sendButton.type='submit';
+    MyChat.clearXML.className='clearXML';
     
-    //Vyplňuji další parametry
-    MujChat.h1.innerHTML = 'Toto je cvičný chat';
-    MujChat.sendButton.innerHTML = 'Odeslat';
-    MujChat.clearXML.innerHTML = 'Smazat historii chatu';
-    MujChat.chat.innerHTML = 'Dobrý den, zde se bude zobrazovat váš chat.';
-    //Zobrazují do DOM
-    document.body.appendChild(MujChat.box);    //Vypisova a odesilaci funkce od uzivatele
-    //Přidávám event
-    MujChat.form.addEventListener('submit', vypisZpravu, false);
-    MujChat.clearXML.addEventListener('click', resetXML, false);
-    //Zapínám časovač na čtení ze serveru
-    setInterval(function(){dotazNaServer(1,'');},3000);
-    // OBSLUZNE FUNKCE
-    function vypisZpravu(e){
+    //Setting inner HTML.
+    MyChat.h1.innerHTML = 'SimpleChat';
+    MyChat.sendButton.innerHTML = 'Send';
+    MyChat.clearXML.innerHTML = 'Erase history';
+    MyChat.chat.innerHTML = 'Hi, here will be your communication soon.';
+    
+    //Inserting DOM to the website.
+    document.body.appendChild(MyChat.box);
+    //
+    //Adding events.
+    MyChat.form.addEventListener('submit', sendMessage, false);
+    MyChat.clearXML.addEventListener('click', resetXML, false);
+    
+    //I'm starting timer for regular questions for new messages.
+    setInterval(function(){sendToServer(PULL_NEWS,'');},3000);
+    
+    // All functions are here.
+    function sendMessage(e){
         e.preventDefault();
         timeStamp = new Date().getTime();
-        var novaZprava = document.createElement('p');
-        var message = encodeHTML(MujChat.nameLine.value) + ' - ' + encodeHTML(MujChat.responseLine.value);
-        novaZprava.innerHTML = message;
-        MujChat.responseLine.value = '';
-        MujChat.chat.appendChild(novaZprava);//pridam zpravu do okna
-        dotazNaServer(0, message);
+        var newMessage = document.createElement('p');
+        var message = encodeHTML(MyChat.nickLine.value) + ' - ' + encodeHTML(MyChat.responseLine.value);
+        newMessage.innerHTML = message;
+        MyChat.responseLine.value = '';
+        MyChat.chat.appendChild(newMessage);//adds message to the chat div.
+        sendToServer(SEND_MESSAGE, message);
     }
     function resetXML(e){
         e.preventDefault();
-        dotazNaServer(2,'');
+        sendToServer(CLEAR_XML,'');
         }
     
-    function dotazNaServer(id,message){
+    function sendToServer(id,message){
         xhr.open('POST', 'http://chat.kolich-technologies.com/chatHandler.php');
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.send('message=' + encodeURIComponent(message) + '&timeStamp=' + encodeURIComponent(timeStamp) + '&id=' + encodeURIComponent(id));//odeslání zprávy na server
+        xhr.send('message=' + encodeURIComponent(message) + '&timeStamp=' + encodeURIComponent(timeStamp) + '&id=' + encodeURIComponent(id));//POST data encode and sending to server.
     }
         
     //Vypisova funkce ze serveru
-    function vypisZpravuServeru(){
+    function handleServerResponse(){
         if (xhr.readyState === 4 && xhr.status === 200) {
-              var novaZprava = document.createElement('p');//nejsem si jistý jestli by to nemělo být spíš v tom mapu
+              var newMessage = document.createElement('p');//I'm not 100% positive if I should putt this to the map function below.
               var response = xhr.responseText;
               if(!response){}
               else{
                 response = JSON.parse(response);
                 timeStamp = response.timeStamp;
                 response.messages.map(function(){
-                    novaZprava.innerHTML = arguments[0];
-                    novaZprava.className = 'resp';
-                    MujChat.chat.appendChild(novaZprava);
+                    newMessage.innerHTML = arguments[0];
+                    newMessage.className = 'resp';
+                    MyChat.chat.appendChild(newMessage);
                 });
                 }
             }
     }
         
-    //Vyrob xhr
-    function vyrobXhr(){
+    //This handles diferent xhr creation processes fow IE and other browsers.
+    function createXhr(){
         if (window.XMLHttpRequest) { // Mozilla, Safari, ...
             xhr = new XMLHttpRequest();
         } else if (window.ActiveXObject) { // IE
@@ -121,14 +129,14 @@ window.onload = function(){
         }
 
         if (!xhr) {
-           alert('Nejde udělat instance XMLHTTP');
+           alert("I can't create XMLHTTP.");
            return false;
         }
         
-        xhr.onreadystatechange = vypisZpravuServeru;
+        xhr.onreadystatechange = handleServerResponse;
     }
     
-    //pro filtraci html
+    //For basic HTML tag filtration.
     function encodeHTML(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 }
